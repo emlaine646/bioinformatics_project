@@ -1,93 +1,79 @@
+# bioinformatics_program.py
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-# -----------------------------
-# Step 1: CSV file paths
-# -----------------------------
-csv_files = [
-    "data_part1.csv",
-    "data_part2.csv",
-    "data_part3.csv"
-]
+# ------------------------------
+# Load CSV files
+# ------------------------------
+csv_files = ["data_part1.csv", "data_part2.csv", "data_part3.csv"]
+df_list = [pd.read_csv(f) for f in csv_files]
+df = pd.concat(df_list, ignore_index=True)
 
-# Step 2: Check files exist
-for file in csv_files:
-    if not os.path.exists(file):
-        raise FileNotFoundError(f"Missing file: {file}")
-
-# Step 3: Load and combine CSVs
-dataframes = [pd.read_csv(file) for file in csv_files]
-data = pd.concat(dataframes, ignore_index=True)
-
-# Step 4: Dataset info
+# ------------------------------
+# Display basic dataset info
+# ------------------------------
 print("\n=== Dataset Info ===")
-print(data.info())
+print(df.info())
 
 print("\n=== First 5 Rows ===")
-print(data.head())
+print(df.head())
 
 print("\n=== Summary Statistics ===")
-print(data.describe())
+print(df.describe())
 
-# Step 5: Handle missing values
-missing_counts = data.isnull().sum()
 print("\n=== Missing Values per Column ===")
-print(missing_counts[missing_counts > 0])
+print(df.isnull().sum())
 
-# Step 6: Detect age column and plot histogram
-age_col_candidates = [col for col in data.columns if "age" in col.lower()]
+# ------------------------------
+# Create folder for saved plots
+# ------------------------------
+plot_dir = "plots"
+os.makedirs(plot_dir, exist_ok=True)
 
-if age_col_candidates:
-    age_col = age_col_candidates[0]
-    print(f"\nPlotting histogram for column: {age_col}")
-    plt.figure(figsize=(8,5))
-    plt.hist(data[age_col].dropna(), bins=20, color='skyblue', edgecolor='black')
-    plt.title(f"{age_col} Distribution")
-    plt.xlabel(age_col)
-    plt.ylabel("Count")
-    plt.show()
-else:
-    print("\nNo age-related column found to plot.")
+# ------------------------------
+# Plot histograms for key columns
+# ------------------------------
+columns_to_plot = ["Age", "BMI", "CA125", "TumorSize", "ProgressionProbability"]
 
-# Step 7: Additional histograms for key features
-numeric_features = ["BMI", "CA125", "TumorSize", "ProgressionProbability"]
-for feature in numeric_features:
-    if feature in data.columns:
+for col in columns_to_plot:
+    if col in df.columns:
         plt.figure(figsize=(8,5))
-        plt.hist(data[feature].dropna(), bins=20, color='lightgreen', edgecolor='black')
-        plt.title(f"{feature} Distribution")
-        plt.xlabel(feature)
-        plt.ylabel("Count")
+        plt.hist(df[col], bins=30, color='skyblue', edgecolor='black')
+        plt.title(f'Histogram of {col}')
+        plt.xlabel(col)
+        plt.ylabel('Frequency')
+        plt.tight_layout()
+        # Save plot
+        plt.savefig(os.path.join(plot_dir, f"{col}_histogram.png"))
         plt.show()
     else:
-        print(f"{feature} column not found.")
+        print(f"Column {col} not found in the dataset.")
 
-# Step 8: Correlation heatmap (numeric columns)
-numeric_cols = data.select_dtypes(include='number').columns
-if len(numeric_cols) > 1:
-    plt.figure(figsize=(12,10))
-    corr = data[numeric_cols].corr()
-    sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm")
-    plt.title("Correlation Heatmap of Numeric Features")
-    plt.show()
-else:
-    print("Not enough numeric columns to compute correlation heatmap.")
+# ------------------------------
+# Correlation heatmap for numeric columns
+# ------------------------------
+numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+plt.figure(figsize=(12,10))
+sns.heatmap(df[numeric_cols].corr(), annot=True, fmt=".2f", cmap="coolwarm")
+plt.title("Correlation Heatmap of Numeric Features")
+plt.tight_layout()
+plt.savefig(os.path.join(plot_dir, "correlation_heatmap.png"))
+plt.show()
 
-# -----------------------------
-# Step 9: Ovarian Cancer Risk Summary by CancerStage
-# -----------------------------
-if "CancerStage" in data.columns and "ProgressionProbability" in data.columns:
-    risk_summary = data.groupby("CancerStage")["ProgressionProbability"].mean()
-    print("\n=== Average ProgressionProbability by CancerStage ===")
-    print(risk_summary)
-
+# ------------------------------
+# Average ProgressionProbability by CancerStage
+# ------------------------------
+if "CancerStage" in df.columns and "ProgressionProbability" in df.columns:
+    stage_avg = df.groupby("CancerStage")["ProgressionProbability"].mean()
     plt.figure(figsize=(8,5))
-    sns.barplot(x=risk_summary.index, y=risk_summary.values, palette="Reds")
-    plt.title("Average ProgressionProbability by CancerStage")
-    plt.xlabel("CancerStage")
-    plt.ylabel("Average ProgressionProbability")
+    stage_avg.plot(kind='bar', color='salmon', edgecolor='black')
+    plt.title("Average Progression Probability by CancerStage")
+    plt.xlabel("Cancer Stage")
+    plt.ylabel("Average Progression Probability")
+    plt.tight_layout()
+    plt.savefig(os.path.join(plot_dir, "progression_by_stage.png"))
     plt.show()
 else:
-    print("\nCannot generate risk summary plot: required columns missing.")
+    print("Columns 'CancerStage' or 'ProgressionProbability' not found in dataset.")
