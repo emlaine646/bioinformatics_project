@@ -27,3 +27,16 @@ Install the required Python packages:
 
 ```bash
 pip install -r requirements.txt
+
+
+### **Next Steps in VS Code:**
+
+1. Open `README.md` in VS Code.  
+2. Replace any existing text with the above content.  
+3. Save the file.  
+4. Push it to GitHub:
+
+```powershell
+git add README.md
+git commit -m "Update README with plot and usage instructions"
+git push
