@@ -4,24 +4,23 @@
 This project analyzes ovarian cancer patient data using Python. The dataset is split into three CSV files (`data_part1.csv`, `data_part2.csv`, `data_part3.csv`) due to size constraints. The analysis includes visualizations of patient features and progression probabilities.
 ---
 
-## Features
+Purpose: Analyze ovarian cancer patient data to identify patterns in clinical, genetic, and imaging features related to disease progression. This project explores how patient characteristics correlate with progression probabilities and cancer stage.
 
-- Histograms of key features:
-  - Age
-  - BMI
-  - CA125
-  - Tumor Size
-  - Progression Probability
+Tools Used: Python, pandas, matplotlib, seaborn
 
-- Correlation heatmap of continuous numeric features, showing relationships between clinical, genetic, and imaging variables.
+Analysis Includes:
 
-- Average progression probability by cancer stage, with annotations to show small differences between stages.
+Histograms of key features (Age, BMI, CA125, Tumor Size, Progression Probability)
 
----
+Correlation heatmaps to visualize relationships among numeric features
 
-## Requirements
+Average progression probability by cancer stage, with annotations highlighting subtle differences
 
-Install dependencies using:
+My Role: Wrote Python scripts for data cleaning, visualization, and analysis; interpreted patterns and generated visualizations to summarize findings.
 
-```bash
-pip install -r requirements.txt
+How to Run:
+
+Install dependencies with pip install -r requirements.txt
+
+Run analysis.py
+
