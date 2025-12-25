@@ -1,79 +1,106 @@
 # bioinformatics_program.py
+
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
+import numpy as np
 
 # ------------------------------
 # Load CSV files
 # ------------------------------
 csv_files = ["data_part1.csv", "data_part2.csv", "data_part3.csv"]
-df_list = [pd.read_csv(f) for f in csv_files]
+
+df_list = []
+for file in csv_files:
+    df_list.append(pd.read_csv(file))
+
 df = pd.concat(df_list, ignore_index=True)
 
 # ------------------------------
-# Display basic dataset info
+# Prepare plots folder
 # ------------------------------
-print("\n=== Dataset Info ===")
-print(df.info())
+plot_dir = "plots"
+if not os.path.exists(plot_dir):
+    os.makedirs(plot_dir)
 
+# ------------------------------
+# Summary of dataset
+# ------------------------------
+print("=== Dataset Info ===")
+print(df.info())
 print("\n=== First 5 Rows ===")
 print(df.head())
-
 print("\n=== Summary Statistics ===")
 print(df.describe())
-
 print("\n=== Missing Values per Column ===")
 print(df.isnull().sum())
 
 # ------------------------------
-# Create folder for saved plots
+# Histograms for selected columns
 # ------------------------------
-plot_dir = "plots"
-os.makedirs(plot_dir, exist_ok=True)
+hist_cols = ['Age', 'BMI', 'CA125', 'TumorSize', 'ProgressionProbability']
+
+for col in hist_cols:
+    plt.figure(figsize=(8,6))
+    sns.histplot(df[col], bins=30, kde=True, color='skyblue')
+    plt.title(f"Histogram of {col}")
+    plt.xlabel(col)
+    plt.ylabel("Count")
+    plt.tight_layout()
+    plt.savefig(os.path.join(plot_dir, f"{col}_histogram.png"))
+    plt.show()
 
 # ------------------------------
-# Plot histograms for key columns
+# Correlation heatmap
 # ------------------------------
-columns_to_plot = ["Age", "BMI", "CA125", "TumorSize", "ProgressionProbability"]
+continuous_cols = [
+    'Age', 'BMI', 'CA125', 'GeneExpression', 'DNAMethylation', 'miRNA',
+    'TumorSize', 'EnhancementPattern', 'RadiomicTexture', 'RadiomicIntensity',
+    'RadiomicShape', 'DopplerVelocity', 'ProgressionProbability'
+]
 
-for col in columns_to_plot:
-    if col in df.columns:
-        plt.figure(figsize=(8,5))
-        plt.hist(df[col], bins=30, color='skyblue', edgecolor='black')
-        plt.title(f'Histogram of {col}')
-        plt.xlabel(col)
-        plt.ylabel('Frequency')
-        plt.tight_layout()
-        # Save plot
-        plt.savefig(os.path.join(plot_dir, f"{col}_histogram.png"))
-        plt.show()
-    else:
-        print(f"Column {col} not found in the dataset.")
+# Ensure numeric
+for col in continuous_cols:
+    df[col] = pd.to_numeric(df[col], errors='coerce')
 
-# ------------------------------
-# Correlation heatmap for numeric columns
-# ------------------------------
-numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+# Remove zero variance columns
+continuous_cols = [col for col in continuous_cols if df[col].var() > 0]
+
+corr_matrix = df[continuous_cols].corr()
+mask = np.eye(len(corr_matrix), dtype=bool)
+
 plt.figure(figsize=(12,10))
-sns.heatmap(df[numeric_cols].corr(), annot=True, fmt=".2f", cmap="coolwarm")
-plt.title("Correlation Heatmap of Numeric Features")
+sns.set(font_scale=1)
+sns.heatmap(corr_matrix, annot=True, fmt=".3f", cmap="coolwarm", center=0, mask=mask,
+            linewidths=0.5, linecolor='gray')
+plt.title("Correlation Heatmap of Continuous Numeric Features", fontsize=16)
 plt.tight_layout()
 plt.savefig(os.path.join(plot_dir, "correlation_heatmap.png"))
 plt.show()
 
 # ------------------------------
-# Average ProgressionProbability by CancerStage
+# Average Progression Probability by CancerStage (enhanced)
 # ------------------------------
-if "CancerStage" in df.columns and "ProgressionProbability" in df.columns:
-    stage_avg = df.groupby("CancerStage")["ProgressionProbability"].mean()
-    plt.figure(figsize=(8,5))
-    stage_avg.plot(kind='bar', color='salmon', edgecolor='black')
-    plt.title("Average Progression Probability by CancerStage")
-    plt.xlabel("Cancer Stage")
-    plt.ylabel("Average Progression Probability")
-    plt.tight_layout()
-    plt.savefig(os.path.join(plot_dir, "progression_by_stage.png"))
-    plt.show()
-else:
-    print("Columns 'CancerStage' or 'ProgressionProbability' not found in dataset.")
+df['CancerStage'] = pd.to_numeric(df['CancerStage'], errors='coerce')
+df['ProgressionProbability'] = pd.to_numeric(df['ProgressionProbability'], errors='coerce')
+
+stage_means = df.groupby('CancerStage')['ProgressionProbability'].mean()
+
+plt.figure(figsize=(8,6))
+sns.barplot(x=stage_means.index, y=stage_means.values, palette="Blues_d")
+
+plt.title("Average Progression Probability by Cancer Stage")
+plt.ylabel("Avg Progression Probability")
+plt.xlabel("Cancer Stage")
+
+# Set y-axis limits to zoom in around the data
+plt.ylim(stage_means.min() - 0.01, stage_means.max() + 0.01)
+
+# Annotate each bar with the numeric value
+for i, val in enumerate(stage_means.values):
+    plt.text(i, val + 0.002, f"{val:.3f}", ha='center', va='bottom')
+
+plt.tight_layout()
+plt.savefig(os.path.join(plot_dir, "progression_by_stage.png"))
+plt.show()
